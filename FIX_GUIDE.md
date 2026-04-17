@@ -60,14 +60,54 @@ CREATE POLICY "profiles_select_all"
   USING (auth.uid() IS NOT NULL);
 ```
 
-### 4. إضافة المستخدم يدوياً (حل سريع)
-إذا كنت تريد الدخول فوراً ببريدك الحالي، قم بتشغيل هذا الأمر في SQL Editor (مع استبدال القيم ببياناتك):
+### 4. تعيين المستخدم كـ Super Admin (الخطوة الإضافية)
+
+**للمستخدم: amramramr22000@gmail.com**
+
+قم بتنفيذ الخطوات التالية:
+
+#### أ) أولاً: ابحث عن ID المستخدم
+اذهب إلى **Authentication → Users** في Supabase، وابحث عن البريد `amramramr22000@gmail.com`، ثم انسخ الـ **User ID** (يبدو مثل: `550e8400-e29b-41d4-a716-446655440000`).
+
+#### ب) ثانياً: قم بتشغيل هذا الأمر في SQL Editor
+استبدل `YOUR_USER_ID_HERE` بالـ ID الذي نسخته:
 
 ```sql
-INSERT INTO public.profiles (id, email, full_name, role)
-VALUES ('ID_الخاص_ببريدك_من_قسم_AUTH', 'your-email@example.com', 'Your Name', 'super_admin')
+-- تعيين المستخدم كـ super_admin
+INSERT INTO public.profiles (id, email, full_name, role, is_active)
+VALUES (
+  'YOUR_USER_ID_HERE',
+  'amramramr22000@gmail.com',
+  'Amr',
+  'super_admin',
+  true
+)
 ON CONFLICT (id) DO UPDATE SET role = 'super_admin';
 ```
+
+### 5. إضافة المستخدمين الآخرين يدوياً (إذا لزم الأمر)
+إذا كان لديك مستخدمون آخرون يريدون الدخول، استخدم نفس الطريقة أعلاه مع تغيير البريد والدور (role):
+
+```sql
+-- مثال: إضافة مستخدم عادي (tasker)
+INSERT INTO public.profiles (id, email, full_name, role, is_active)
+VALUES (
+  'ANOTHER_USER_ID',
+  'another-email@example.com',
+  'User Name',
+  'tasker',  -- أو 'admin' أو 'qa'
+  true
+)
+ON CONFLICT (id) DO UPDATE SET role = 'tasker';
+```
+
+---
+
+## الأدوار المتاحة (Roles)
+- `super_admin`: صلاحيات كاملة على النظام
+- `admin`: إدارة المهام والمستخدمين
+- `qa`: مراجعة التعليقات والتصحيحات
+- `tasker`: تنفيذ المهام والتعليقات (الدور الافتراضي)
 
 ---
 
@@ -78,3 +118,12 @@ ON CONFLICT (id) DO UPDATE SET role = 'super_admin';
 - `SUPABASE_SERVICE_ROLE_KEY` (مهم جداً لعمليات الإدارة)
 
 بعد تنفيذ هذه الخطوات، سيتمكن التطبيق من التعرف على ملفك الشخصي فور تسجيل الدخول وسينقلك إلى لوحة التحكم مباشرة.
+
+---
+
+## خطوات التحقق
+بعد تنفيذ الأوامر أعلاه:
+1. اذهب إلى **Table Editor** واختر جدول `profiles`.
+2. تأكد من وجود سجل لبريدك مع الدور الصحيح.
+3. حاول تسجيل الدخول مرة أخرى.
+4. إذا استمرت المشكلة، تحقق من **Logs** في Supabase للبحث عن أخطاء.
