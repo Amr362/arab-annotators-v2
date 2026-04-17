@@ -1,26 +1,25 @@
-import { createContext, useContext, useEffect, useState, useRef } from 'react'
+import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 
 const ProfileContext = createContext({
   profile: null,
   loading: true,
+  profileMissing: false,
   refresh: () => Promise.resolve(),
 })
 
 export function ProfileProvider({ children }) {
-  const [profile, setProfile] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [profile, setProfile]               = useState(null)
+  const [loading, setLoading]               = useState(true)
+  const [profileMissing, setProfileMissing] = useState(false)
   const fetchingRef = useRef(false)
 
-  const fetchProfile = async (userId) => {
-    // Prevent concurrent fetches
+  const fetchProfile = useCallback(async (userId) => {
     if (fetchingRef.current) return
     fetchingRef.current = true
 
     try {
       let uid = userId
-
-      // If no userId provided, get it from session
       if (!uid) {
         const { data: { session } } = await supabase.auth.getSession()
         uid = session?.user?.id
@@ -28,6 +27,7 @@ export function ProfileProvider({ children }) {
 
       if (!uid) {
         setProfile(null)
+        setProfileMissing(false)
         setLoading(false)
         return
       }
@@ -39,15 +39,23 @@ export function ProfileProvider({ children }) {
         .single()
 
       if (error) {
-        // Profile doesn't exist yet (race condition after signup)
         if (error.code === 'PGRST116') {
-          setProfile(null)
+          const ensured = await ensureProfile(uid)
+          if (ensured) {
+            setProfile(ensured)
+            setProfileMissing(false)
+          } else {
+            setProfile(null)
+            setProfileMissing(true)
+          }
         } else {
           console.error('[ProfileProvider] fetch error:', error.message)
           setProfile(null)
+          setProfileMissing(false)
         }
       } else {
         setProfile(data)
+        setProfileMissing(false)
       }
     } catch (err) {
       console.error('[ProfileProvider] unexpected error:', err)
@@ -56,38 +64,52 @@ export function ProfileProvider({ children }) {
       setLoading(false)
       fetchingRef.current = false
     }
+  }, [])
+
+  async function ensureProfile(uid) {
+    try {
+      const res = await fetch('/api/users/ensure-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: uid }),
+      })
+      if (!res.ok) return null
+      const json = await res.json()
+      return json.profile || null
+    } catch {
+      return null
+    }
   }
 
   useEffect(() => {
-    // Initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         fetchProfile(session.user.id)
       } else {
         setProfile(null)
+        setProfileMissing(false)
         setLoading(false)
       }
     })
 
-    // Listen for auth changes (login/logout/token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (session?.user) fetchProfile(session.user.id)
         } else if (event === 'SIGNED_OUT') {
           setProfile(null)
+          setProfileMissing(false)
           setLoading(false)
         }
-        // Ignore USER_UPDATED and other events to avoid re-fetch loops
       }
     )
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [fetchProfile])
 
   return (
     <ProfileContext.Provider
-      value={{ profile, loading, refresh: () => fetchProfile() }}
+      value={{ profile, loading, profileMissing, refresh: () => fetchProfile() }}
     >
       {children}
     </ProfileContext.Provider>
