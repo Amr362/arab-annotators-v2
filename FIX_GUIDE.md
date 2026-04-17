@@ -11,18 +11,19 @@
 
 ---
 
-## خطوات الإصلاح (يجب تنفيذها في لوحة تحكم Supabase)
+## ✅ الحل السريع والمخصص لك
 
-### 1. التأكد من وجود سجل للمستخدم في جدول `profiles`
-اذهب إلى **Table Editor** في Supabase، واختر جدول `profiles`. تأكد من وجود سجل يحمل نفس الـ `id` الخاص ببريدك الإلكتروني (يمكنك إيجاد الـ `id` في قسم Authentication -> Users).
+### المستخدم: amramramr22000@gmail.com
+**User ID:** `de57288b-9732-43cf-8540-1eca75c86706`
 
-إذا لم يكن موجوداً، فهذا يعني أن الـ **Trigger** المسؤول عن الإنشاء التلقائي لم يعمل.
+### الخطوة الوحيدة: شغّل أوامر SQL
 
-### 2. إعادة تشغيل الـ Trigger والوظائف الأساسية
-قم بنسخ الكود التالي ولصقه في **SQL Editor** في Supabase وتشغيله (Run):
+1. اذهب إلى **Supabase Dashboard** → **SQL Editor**
+2. انسخ الأوامر التالية ولصقها في محرر SQL
+3. اضغط **Run** لتشغيلها
 
 ```sql
--- 1. التأكد من وجود وظيفة إنشاء الملف الشخصي تلقائياً
+-- أمر 1: إعادة تشغيل الـ Trigger
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -39,44 +40,27 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 2. ربط الوظيفة بعملية التسجيل
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 ```
 
-### 3. تفعيل سياسات الوصول (RLS Policies)
-تأكد من أن المستخدم لديه صلاحية قراءة ملفه الشخصي. قم بتشغيل هذا الكود أيضاً:
-
 ```sql
--- تفعيل الحماية على الجدول
+-- أمر 2: تفعيل سياسات الوصول
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- السماح للمستخدمين المسجلين بقراءة الملفات الشخصية
 DROP POLICY IF EXISTS "profiles_select_all" ON public.profiles;
 CREATE POLICY "profiles_select_all"
   ON public.profiles FOR SELECT
   USING (auth.uid() IS NOT NULL);
 ```
 
-### 4. تعيين المستخدم كـ Super Admin (الخطوة الإضافية)
-
-**للمستخدم: amramramr22000@gmail.com**
-
-قم بتنفيذ الخطوات التالية:
-
-#### أ) أولاً: ابحث عن ID المستخدم
-اذهب إلى **Authentication → Users** في Supabase، وابحث عن البريد `amramramr22000@gmail.com`، ثم انسخ الـ **User ID** (يبدو مثل: `550e8400-e29b-41d4-a716-446655440000`).
-
-#### ب) ثانياً: قم بتشغيل هذا الأمر في SQL Editor
-استبدل `YOUR_USER_ID_HERE` بالـ ID الذي نسخته:
-
 ```sql
--- تعيين المستخدم كـ super_admin
+-- أمر 3: تعيين كـ Super Admin
 INSERT INTO public.profiles (id, email, full_name, role, is_active)
 VALUES (
-  'YOUR_USER_ID_HERE',
+  'de57288b-9732-43cf-8540-1eca75c86706',
   'amramramr22000@gmail.com',
   'Amr',
   'super_admin',
@@ -85,25 +69,45 @@ VALUES (
 ON CONFLICT (id) DO UPDATE SET role = 'super_admin';
 ```
 
-### 5. إضافة المستخدمين الآخرين يدوياً (إذا لزم الأمر)
-إذا كان لديك مستخدمون آخرون يريدون الدخول، استخدم نفس الطريقة أعلاه مع تغيير البريد والدور (role):
+---
+
+## ✅ التحقق من النجاح
+
+بعد تشغيل الأوامر:
+
+1. اذهب إلى **Table Editor** واختر جدول `profiles`
+2. تأكد من وجود سجل لـ `amramramr22000@gmail.com` مع الدور `super_admin`
+3. حاول تسجيل الدخول مرة أخرى
+
+**النتيجة المتوقعة:** سيتم نقلك مباشرة إلى لوحة التحكم دون تعليق! 🎉
+
+---
+
+## 📝 ملاحظات إضافية
+
+### إذا استمرت المشكلة:
+- تحقق من أن متغيرات البيئة موجودة في Vercel:
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  - `SUPABASE_SERVICE_ROLE_KEY`
+- تحقق من سجلات الأخطاء في **Supabase → Logs**
+
+### لإضافة مستخدمين آخرين:
+استخدم نفس الطريقة مع تغيير البريد والـ ID والدور:
 
 ```sql
--- مثال: إضافة مستخدم عادي (tasker)
 INSERT INTO public.profiles (id, email, full_name, role, is_active)
 VALUES (
-  'ANOTHER_USER_ID',
-  'another-email@example.com',
+  'OTHER_USER_ID',
+  'other-email@example.com',
   'User Name',
-  'tasker',  -- أو 'admin' أو 'qa'
+  'tasker',  -- أو 'admin' أو 'qa' أو 'super_admin'
   true
 )
 ON CONFLICT (id) DO UPDATE SET role = 'tasker';
 ```
 
----
-
-## الأدوار المتاحة (Roles)
+### الأدوار المتاحة:
 - `super_admin`: صلاحيات كاملة على النظام
 - `admin`: إدارة المهام والمستخدمين
 - `qa`: مراجعة التعليقات والتصحيحات
@@ -111,19 +115,13 @@ ON CONFLICT (id) DO UPDATE SET role = 'tasker';
 
 ---
 
-## ملاحظة هامة
-تأكد من إضافة المتغيرات التالية في إعدادات **Vercel** أو ملف `.env`:
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY` (مهم جداً لعمليات الإدارة)
+## 📁 ملفات مساعدة
 
-بعد تنفيذ هذه الخطوات، سيتمكن التطبيق من التعرف على ملفك الشخصي فور تسجيل الدخول وسينقلك إلى لوحة التحكم مباشرة.
+في المستودع ستجد:
+- **SETUP_COMMANDS.sql**: جميع الأوامر في ملف واحد جاهز للنسخ
+- **FIX_GUIDE.md** (هذا الملف): شرح مفصل للمشكلة والحل
 
 ---
 
-## خطوات التحقق
-بعد تنفيذ الأوامر أعلاه:
-1. اذهب إلى **Table Editor** واختر جدول `profiles`.
-2. تأكد من وجود سجل لبريدك مع الدور الصحيح.
-3. حاول تسجيل الدخول مرة أخرى.
-4. إذا استمرت المشكلة، تحقق من **Logs** في Supabase للبحث عن أخطاء.
+**تم تحديث هذا الدليل:** 2026-04-17
+**الحالة:** ✅ جاهز للتطبيق
