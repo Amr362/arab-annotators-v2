@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "pages/api/admin/create-tasks.js": { "maxDuration": 60 },
+    "pages/api/admin/reassign.js":     { "maxDuration": 30 },
+    "pages/api/worker/next-task.js":   { "maxDuration": 10 },
+    "pages/api/task/complete.js":      { "maxDuration": 15 }
+  }
+}
