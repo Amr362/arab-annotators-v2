@@ -15,6 +15,7 @@ const NAV = {
     { href: '/tasks/queue',          icon: '☰', label: 'الطابور' },
     { href: '/tasks',                icon: '✦', label: 'مهامي' },
     { href: '/review',               icon: '◈', label: 'المراجعة', badge: 'pendingReview' },
+    { href: '/settings',             icon: '◇', label: 'الإعدادات' },
   ],
   admin: [
     { href: '/dashboard',            icon: '⊞', label: 'لوحة التحكم' },
@@ -24,15 +25,18 @@ const NAV = {
     { href: '/admin/bulk-upload',    icon: '⬆', label: 'رفع مهام' },
     { href: '/admin/distribution',   icon: '◉', label: 'التوزيع' },
     { href: '/review',               icon: '◈', label: 'المراجعة', badge: 'pendingReview' },
+    { href: '/settings',             icon: '◇', label: 'الإعدادات' },
   ],
   qa: [
     { href: '/dashboard',            icon: '⊞', label: 'لوحة التحكم' },
     { href: '/review',               icon: '◈', label: 'قائمة المراجعة', badge: 'pendingReview' },
+    { href: '/settings',             icon: '◇', label: 'الإعدادات' },
   ],
   tasker: [
     { href: '/dashboard',            icon: '⊞', label: 'لوحة التحكم' },
     { href: '/tasks/queue',          icon: '☰', label: 'طابور مهامي', badge: 'pendingTasks' },
     { href: '/tasks',                icon: '✦', label: 'كل مهامي' },
+    { href: '/settings',             icon: '◇', label: 'الإعدادات' },
   ],
 }
 
