@@ -1,4 +1,4 @@
-import { STATUS_LABELS } from '../lib/auth'
+import { STATUS_LABELS } from '../../lib/auth'
 
 export default function StatusBadge({ status, size = 'sm' }) {
   const padding = size === 'sm' ? '2px 8px' : '4px 12px'
